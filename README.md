@@ -13,6 +13,11 @@ dupemgr is a multifunction utility to manage duplicate files and directories on 
 
 "search" lists all files found in /path, recursively, that are duplicates of /some/file.txt.
 
+
+    $ dupemgr search /path --for /some/backup/path
+
+"search" lists all files found in /path, recursively, that are duplicates of any files in /some/backup/path, recursively. This can take some time for large directories.
+
 ## Removing duplicates
 
 ### This can delete files! Make backups if appropriate.
