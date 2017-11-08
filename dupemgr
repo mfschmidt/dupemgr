@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+""" dupemgr searches one path recursively for duplicates of another path.
+    See README.md for usage examples.
+"""
+
+import argparse
+import time
+
+import DupeManagerApp
+
+# Timers
+time0 = time.time()
+
+# Interpret the command line
+parser = argparse.ArgumentParser()
+parser.add_argument("cmd",
+                    help="The function dupemgr should execute")
+parser.add_argument("originals",
+                    help="The directory to search for duplicates; files are never deleted from here.")
+parser.add_argument("--for", nargs="+", action="store", dest='fors',
+                    help="The duplicate file, or directory with duplicates. may be multiples")
+parser.add_argument("--from", nargs="+", action="store", dest='fors',
+                    help="The duplicate file, or directory with deletable duplicates. may be multiples")
+parser.add_argument("--force_removal", action="store_true",
+                    help="Don't bother asking; just delete duplicate files.")
+parser.add_argument("--exclude", nargs="+", action="store", dest='exclude',
+                    help="One or more paths or files can be excluded from the dupe search.")
+parser.add_argument("--verbosity", action="store", default='2',
+                    help="verbosity of 0 reports nothing. Verbosity of 5 reports everything. 1 is default.")
+# parser.add_argument("--db", action="store_true",
+#     help="Flag to use database entries rather than live filesystem.")
+# parser.add_argument("--dbconfig", nargs="?", action="store", default='~/.dupemgr/db.conf',
+#     help="File containing connection information to the database")
+# parser.add_argument("--dupelog", nargs="?", action="store", default='./dupes.log',
+#     help="Log file to dump lists of duplicate files for later analysis or deletion")
+# parser.add_argument("--rmlog", nargs="?", action="store", default='./run-to-remove-dupes.sh',
+#     help="A script, written by dupemgr, that will remove all duplicates from fors. Useful to double check before really deleting.")
+parser.add_argument("--removetargets", action="store_true",
+                    help="Delete any files from the target that are duplicates of files in [dir]")
+args = parser.parse_args()
+
+time1 = time.time()
+
+app = DupeManagerApp.DupeManagerApp(verbosity=int(args.verbosity))
+
+if args.force_removal:
+    app.force_removal = True
+
+time2 = time.time()
+
+# if args.db:
+#     app.dbconfig(args.dbconfig)
+
+if args.cmd == "search":
+    app.search(orig=args.originals, extras=args.fors, excls=args.exclude)
+elif args.cmd == "remove":
+    app.remove(orig=args.originals, extras=args.fors, excls=args.exclude)
+else:
+    print("I cannot yet \"{0}\" \"{1}\" with {2} targets".format(args.cmd, args.originals, args.fors))
+
+time3 = time.time()
+
+total_time = time3 - time0
+# print("execution time: {0:3f}".format(total_time))
