@@ -97,19 +97,15 @@ class FileNode(BaseNode):
 class DirNode(BaseNode):
     """Maintain information about a directory node."""
 
-    def __init__(self, path, parent=None, do_walk=True, do_hidden=False, depth=0):
+    def __init__(self, path, parent=None, do_walk=True, do_hidden=False, depth=0, make_size_dict=False):
         """Initialize a directory node"""
         BaseNode.__init__(self, path, parent)
-
-        # Remember which iterator we're dealing with to support multiple concurrent iterations
-        # self.iter_N = 0
-        # self.idx = []
-        # self.it = []
 
         # Initialize counters and sums
         self.depth = 0
         self.subdirs = []
         self.files = []
+        self.files_by_size = {}
         self.parent = parent
         self.num_subdirs = 0
         self.num_files = 0
@@ -128,12 +124,22 @@ class DirNode(BaseNode):
                     # print("    {0}[ {1} ]".format( "".ljust(depth*2), entry.name ))
                     self.num_subdirs += 1
                     if do_walk:
-                        self.subdirs.append(DirNode(entry.path, parent=self, depth=depth + 1))
+                        # Create the node first, triggering a walk, then use its contents.
+                        the_dir = DirNode(entry.path, parent=self, depth=depth + 1)
+                        self.subdirs.append(the_dir)
+                        self.merge_dicts(the_dir.files_by_size)
                 elif entry.is_file():
                     # print("    {0} ({1} bytes)".format( entry.path, entry.stat().st_size ))
                     self.num_files += 1
-                    self.bytes += entry.stat().st_size
+                    the_file = FileNode(entry)
+                    self.bytes += the_file.size
+                    # Stick the file in our simple list
                     self.files.append(FileNode(entry))
+                    # and stick the file in our size-indexed dictionary
+                    if the_file.size in self.files_by_size:
+                        self.files_by_size[the_file.size].append(the_file)
+                    else:
+                        self.files_by_size[the_file.size] = [the_file, ]
             self.total_files += self.num_files
             self.total_subdirs += self.num_subdirs
             self.total_bytes += self.bytes
@@ -163,6 +169,13 @@ class DirNode(BaseNode):
 
     def __str__(self):
         return "{0} ({2} in {1} files)".format(self.full_path, self.total_files, size_str(self.total_bytes))
+
+    def merge_dicts(self, new_dict):
+        for size_key in new_dict:
+            if size_key in self.files_by_size:
+                self.files_by_size[size_key] = self.files_by_size[size_key] + new_dict[size_key]
+            else:
+                self.files_by_size[size_key] = new_dict[size_key]
 
 
 class DirIterator():

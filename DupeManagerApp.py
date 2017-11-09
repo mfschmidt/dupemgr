@@ -74,6 +74,7 @@ class DupeManagerApp():
                     if os.path.isdir(parent_dir) and len(os.listdir(parent_dir)) < 1 and parent_dir not in self.extras:
                         self.print("    - removing {0} too".format(parent_dir), v=1)
                         os.rmdir(parent_dir)
+                        # TODO: If access is denied, hang on and ask to save a remove log or wait for permissions to be granted.
         elif self.check_removal:
             for f in self.rmqueue:
                 r = input("Remove {0}?".format(f.full_path))
@@ -84,6 +85,7 @@ class DupeManagerApp():
                         if len(os.listdir(parent_dir)) < 1 and parent_dir not in self.extras:
                             self.print("    - removing {0} too".format(parent_dir), v=1)
                             os.rmdir(parent_dir)
+                            # TODO: If access is denied, hang on and ask to save a remove log or wait for permissions to be granted.
 
     def rm(self, f):
         if f.full_path not in self.rmqueue:
@@ -213,6 +215,12 @@ class DupeManagerApp():
                     else:
                         self.print("{0} is not searchable.".format(f1.full_path), v=3)
                 elif os.path.isdir(t):
+                    # TODO: We are going to iterate over d numerous times. We should make a hash for quick lookup
+                    #       rather than full traversal of the tree. This could happen in-app, or be outsourced to a
+                    #       database like redis or postgresql. Hashing on an actual hash of each file's contents would be great,
+                    #       after it's done, but we only want to spend CPU hashing files we care about. So we will
+                    #       need to sort and index by size. A dictionary of lists, each list of files having equal
+                    #       size will speed things up enormously.
                     td = nodes.DirNode(t)
                     self.num_files_to_check += td.total_files
                     self.print("  checking {0} extra files against {1} protected files.".format(td.total_files, d.total_files), 1)
